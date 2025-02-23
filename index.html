@@ -25,6 +25,7 @@
         const [feedback, setFeedback] = React.useState('');
         const [score, setScore] = React.useState(0);
         const [problemType, setProblemType] = React.useState('addition');
+        const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
 
         // 生成加法問題 - 確保兩位數 + 一位數 不超過100
         const generateAdditionProblem = () => {
@@ -51,15 +52,15 @@
             };
         };
 
-        // 生成乘法問題 - 限制為1-9的乘數表
+        // 生成乘法問題 - 根據選擇的乘數表
         const generateMultiplicationProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            if (!selectedMultiplicationTable) return null;
             const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
             return {
-                firstNumber,
+                firstNumber: selectedMultiplicationTable,
                 secondNumber,
                 operator: '×',
-                correctAnswer: firstNumber * secondNumber
+                correctAnswer: selectedMultiplicationTable * secondNumber
             };
         };
 
@@ -82,7 +83,7 @@
             setProblem(newProblem);
             setUserAnswer('');
             setFeedback('');
-        }, [problemType]);
+        }, [problemType, selectedMultiplicationTable]);
 
         // 檢查答案
         const checkAnswer = () => {
@@ -99,7 +100,7 @@
         // 初始化問題
         React.useEffect(() => {
             generateNewProblem();
-        }, [problemType, generateNewProblem]);
+        }, [problemType, selectedMultiplicationTable, generateNewProblem]);
 
         return (
             <div className="max-w-md mx-auto p-6 bg-white bg-opacity-80 rounded-2xl shadow-2xl text-center relative overflow-hidden">
@@ -115,7 +116,10 @@
                 {/* 問題類型選擇 */}
                 <div className="mb-6 flex justify-center space-x-3">
                     <button 
-                        onClick={() => setProblemType('addition')} 
+                        onClick={() => {
+                            setProblemType('addition');
+                            setSelectedMultiplicationTable(null);
+                        }} 
                         className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
                             ${problemType === 'addition' 
                                 ? 'bg-green-500 text-white scale-105' 
@@ -124,7 +128,10 @@
                         加法
                     </button>
                     <button 
-                        onClick={() => setProblemType('subtraction')} 
+                        onClick={() => {
+                            setProblemType('subtraction');
+                            setSelectedMultiplicationTable(null);
+                        }} 
                         className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
                             ${problemType === 'subtraction' 
                                 ? 'bg-blue-500 text-white scale-105' 
@@ -143,9 +150,38 @@
                     </button>
                 </div>
 
+                {/* 乘法表選擇 */}
+                {problemType === 'multiplication' && !selectedMultiplicationTable && (
+                    <div className="mb-6 bg-purple-50 p-6 rounded-xl shadow-inner">
+                        <h2 className="text-xl font-bold mb-4 text-purple-700">選擇要練習的乘數表</h2>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => setSelectedMultiplicationTable(num)}
+                                    className="bg-purple-200 text-purple-700 py-2 rounded-lg hover:bg-purple-300 transition-colors"
+                                >
+                                    {num} 的乘法表
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* 問題顯示 */}
-                {problem && (
+                {problem && (problemType !== 'multiplication' || selectedMultiplicationTable) && (
                     <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
+                        {problemType === 'multiplication' && (
+                            <div className="mb-4 text-xl text-purple-700 font-bold">
+                                {selectedMultiplicationTable} 的乘法表
+                                <button 
+                                    onClick={() => setSelectedMultiplicationTable(null)}
+                                    className="ml-3 bg-purple-200 px-2 py-1 rounded-md text-sm"
+                                >
+                                    重選
+                                </button>
+                            </div>
+                        )}
                         <div className="text-5xl font-bold mb-6 text-gray-700">
                             {problem.firstNumber} {problem.operator} {problem.secondNumber} = 
                         </div>
