@@ -2,13 +2,20 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>幼稚園數學學習應用</title>
+    <title>萱萱老師數學坊</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
+        }
+    </style>
 </head>
-<body class="bg-yellow-100">
+<body>
     <div id="root" class="container mx-auto p-6"></div>
 
     <script type="text/babel">
@@ -19,10 +26,11 @@
         const [score, setScore] = React.useState(0);
         const [problemType, setProblemType] = React.useState('addition');
 
-        // 生成加法問題
+        // 生成加法問題 - 確保兩位數 + 一位數 不超過100
         const generateAdditionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 90) + 10;
-            const secondNumber = Math.floor(Math.random() * 9) + 1;
+            const firstNumber = Math.floor(Math.random() * 90) + 10; // 10-99的雙位數
+            const maxSecondNumber = 100 - firstNumber; // 確保總和不超過100
+            const secondNumber = Math.floor(Math.random() * Math.min(9, maxSecondNumber)) + 1;
             return {
                 firstNumber,
                 secondNumber,
@@ -43,14 +51,15 @@
             };
         };
 
-        // 生成乘法問題
+        // 生成乘法問題 - 限制為1-9的乘數表
         const generateMultiplicationProblem = () => {
-            const secondNumber = Math.floor(Math.random() * 10) + 1;
+            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
             return {
-                firstNumber: 9,
+                firstNumber,
                 secondNumber,
                 operator: '×',
-                correctAnswer: 9 * secondNumber
+                correctAnswer: firstNumber * secondNumber
             };
         };
 
@@ -93,26 +102,42 @@
         }, [problemType, generateNewProblem]);
 
         return (
-            <div className="max-w-md mx-auto p-6 bg-yellow-100 rounded-lg shadow-lg text-center">
-                <h1 className="text-2xl font-bold mb-4 text-blue-700">數學小遊戲</h1>
+            <div className="max-w-md mx-auto p-6 bg-white bg-opacity-80 rounded-2xl shadow-2xl text-center relative overflow-hidden">
+                {/* 可愛的裝飾 */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-pink-300"></div>
+                <div className="absolute bottom-0 left-0 w-full h-2 bg-pink-300"></div>
+
+                {/* 標題 */}
+                <h1 className="text-3xl font-bold mb-6 text-pink-600 drop-shadow-md">
+                    萱萱老師數學坊 🧮
+                </h1>
                 
                 {/* 問題類型選擇 */}
-                <div className="mb-4">
+                <div className="mb-6 flex justify-center space-x-3">
                     <button 
                         onClick={() => setProblemType('addition')} 
-                        className={`mr-2 px-4 py-2 rounded ${problemType === 'addition' ? 'bg-green-500 text-white' : 'bg-green-200'}`}
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'addition' 
+                                ? 'bg-green-500 text-white scale-105' 
+                                : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
                     >
                         加法
                     </button>
                     <button 
                         onClick={() => setProblemType('subtraction')} 
-                        className={`mr-2 px-4 py-2 rounded ${problemType === 'subtraction' ? 'bg-blue-500 text-white' : 'bg-blue-200'}`}
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'subtraction' 
+                                ? 'bg-blue-500 text-white scale-105' 
+                                : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
                     >
                         減法
                     </button>
                     <button 
                         onClick={() => setProblemType('multiplication')} 
-                        className={`px-4 py-2 rounded ${problemType === 'multiplication' ? 'bg-purple-500 text-white' : 'bg-purple-200'}`}
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'multiplication' 
+                                ? 'bg-purple-500 text-white scale-105' 
+                                : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
                     >
                         乘法
                     </button>
@@ -120,8 +145,8 @@
 
                 {/* 問題顯示 */}
                 {problem && (
-                    <div className="mb-4">
-                        <div className="text-4xl font-bold mb-4">
+                    <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
+                        <div className="text-5xl font-bold mb-6 text-gray-700">
                             {problem.firstNumber} {problem.operator} {problem.secondNumber} = 
                         </div>
                         
@@ -130,21 +155,25 @@
                             type="number" 
                             value={userAnswer}
                             onChange={(e) => setUserAnswer(e.target.value)}
-                            className="w-full p-2 text-center text-2xl border-2 border-gray-300 rounded mb-4"
+                            className="w-full p-3 text-center text-3xl border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-pink-400"
                             placeholder="輸入你的答案"
                         />
                         
                         {/* 檢查按鈕 */}
                         <button 
                             onClick={checkAnswer}
-                            className="w-full bg-orange-500 text-white p-2 rounded hover:bg-orange-600"
+                            className="w-full bg-pink-500 text-white p-3 rounded-lg hover:bg-pink-600 transition-colors duration-300 text-xl"
                         >
                             檢查答案
                         </button>
                         
                         {/* 反饋訊息 */}
                         {feedback && (
-                            <div className={`mt-4 text-2xl font-bold ${feedback.includes('太棒了') ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className={`mt-4 text-2xl font-bold 
+                                ${feedback.includes('太棒了') 
+                                    ? 'text-green-600 animate-bounce' 
+                                    : 'text-red-600'}`}
+                            >
                                 {feedback}
                             </div>
                         )}
@@ -152,8 +181,8 @@
                 )}
 
                 {/* 分數顯示 */}
-                <div className="text-xl">
-                    目前分數：{score}
+                <div className="text-xl text-pink-700 font-bold">
+                    目前分數：{score} 分
                 </div>
             </div>
         );
