@@ -13,6 +13,17 @@
             font-family: 'Noto Sans TC', sans-serif;
             background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
         }
+        .draggable-number {
+            cursor: grab;
+            user-select: none;
+        }
+        .draggable-number:active {
+            cursor: grabbing;
+        }
+        .drop-zone {
+            border: 2px dashed #pink-300;
+            min-height: 50px;
+        }
     </style>
 </head>
 <body>
@@ -21,34 +32,41 @@
     <script type="text/babel">
     function MathLearningApp() {
         const [problem, setProblem] = React.useState(null);
-        const [userAnswer, setUserAnswer] = React.useState('');
         const [feedback, setFeedback] = React.useState('');
         const [score, setScore] = React.useState(0);
         const [problemType, setProblemType] = React.useState('addition');
         const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
+        const [droppedNumber, setDroppedNumber] = React.useState(null);
 
         // 生成加法問題 - 確保兩位數 + 一位數 不超過100
         const generateAdditionProblem = () => {
             const firstNumber = Math.floor(Math.random() * 90) + 10; // 10-99的雙位數
-            const maxSecondNumber = 100 - firstNumber; // 確保總和不超過100
-            const secondNumber = Math.floor(Math.random() * Math.min(9, maxSecondNumber)) + 1;
+            const result = Math.floor(Math.random() * 40) + 20; // 結果20-59
+            const secondNumber = result - firstNumber;
+            const hideFirst = Math.random() > 0.5;
             return {
                 firstNumber,
                 secondNumber,
+                result,
                 operator: '+',
-                correctAnswer: firstNumber + secondNumber
+                correctAnswer: hideFirst ? firstNumber : secondNumber,
+                hideFirst
             };
         };
 
         // 生成減法問題
         const generateSubtractionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 10) + 1;
-            const secondNumber = Math.floor(Math.random() * firstNumber) + 1;
+            const firstNumber = Math.floor(Math.random() * 20) + 10; // 10-29
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = firstNumber - secondNumber;
+            const hideFirst = Math.random() > 0.5;
             return {
                 firstNumber,
                 secondNumber,
+                result,
                 operator: '-',
-                correctAnswer: firstNumber - secondNumber
+                correctAnswer: hideFirst ? firstNumber : secondNumber,
+                hideFirst
             };
         };
 
@@ -56,11 +74,15 @@
         const generateMultiplicationProblem = () => {
             if (!selectedMultiplicationTable) return null;
             const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = selectedMultiplicationTable * secondNumber;
+            const hideFirst = Math.random() > 0.5;
             return {
                 firstNumber: selectedMultiplicationTable,
                 secondNumber,
+                result,
                 operator: '×',
-                correctAnswer: selectedMultiplicationTable * secondNumber
+                correctAnswer: hideFirst ? selectedMultiplicationTable : secondNumber,
+                hideFirst
             };
         };
 
@@ -81,19 +103,19 @@
                     newProblem = generateAdditionProblem();
             }
             setProblem(newProblem);
-            setUserAnswer('');
+            setDroppedNumber(null);
             setFeedback('');
         }, [problemType, selectedMultiplicationTable]);
 
         // 檢查答案
-        const checkAnswer = () => {
-            const numAnswer = parseInt(userAnswer);
-            if (numAnswer === problem.correctAnswer) {
-                setFeedback('太棒了！答對了！🌟');
+        const checkAnswer = (number) => {
+            if (number === problem.correctAnswer) {
+                setFeedback('✅ 太棒了！答對了！');
                 setScore(prevScore => prevScore + 1);
                 setTimeout(generateNewProblem, 1500);
             } else {
-                setFeedback('再試一次喔！');
+                setFeedback('❌ 再試一次喔！');
+                setTimeout(() => setFeedback(''), 1500);
             }
         };
 
@@ -101,6 +123,23 @@
         React.useEffect(() => {
             generateNewProblem();
         }, [problemType, selectedMultiplicationTable, generateNewProblem]);
+
+        // 渲染問題顯示
+        const renderEquation = () => {
+            const { firstNumber, secondNumber, result, operator, hideFirst } = problem;
+            if (hideFirst) {
+                return (
+                    <div className="text-5xl font-bold mb-6 text-gray-700">
+                        ? {operator} {hideFirst ? secondNumber : firstNumber} = {result}
+                    </div>
+                );
+            }
+            return (
+                <div className="text-5xl font-bold mb-6 text-gray-700">
+                    {hideFirst ? '?' : firstNumber} {operator} {hideFirst ? firstNumber : secondNumber} = {result}
+                </div>
+            );
+        };
 
         return (
             <div className="max-w-md mx-auto p-6 bg-white bg-opacity-80 rounded-2xl shadow-2xl text-center relative overflow-hidden">
@@ -182,37 +221,39 @@
                                 </button>
                             </div>
                         )}
-                        <div className="text-5xl font-bold mb-6 text-gray-700">
-                            {problem.firstNumber} {problem.operator} {problem.secondNumber} = 
-                        </div>
                         
-                        {/* 答案輸入 */}
-                        <input 
-                            type="number" 
-                            value={userAnswer}
-                            onChange={(e) => setUserAnswer(e.target.value)}
-                            className="w-full p-3 text-center text-3xl border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                            placeholder="輸入你的答案"
-                        />
-                        
-                        {/* 檢查按鈕 */}
-                        <button 
-                            onClick={checkAnswer}
-                            className="w-full bg-pink-500 text-white p-3 rounded-lg hover:bg-pink-600 transition-colors duration-300 text-xl"
-                        >
-                            檢查答案
-                        </button>
+                        {/* 方程式 */}
+                        {renderEquation()}
                         
                         {/* 反饋訊息 */}
                         {feedback && (
-                            <div className={`mt-4 text-2xl font-bold 
-                                ${feedback.includes('太棒了') 
+                            <div className={`mb-4 text-2xl font-bold 
+                                ${feedback.includes('✅') 
                                     ? 'text-green-600 animate-bounce' 
                                     : 'text-red-600'}`}
                             >
                                 {feedback}
                             </div>
                         )}
+
+                        {/* 數字選擇區 */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => {
+                                        setDroppedNumber(num);
+                                        checkAnswer(num);
+                                    }}
+                                    className={`py-2 text-lg rounded-lg transition-all duration-300 
+                                        ${droppedNumber === num 
+                                            ? 'bg-pink-500 text-white scale-105' 
+                                            : 'bg-pink-200 text-pink-700 hover:bg-pink-300'}`}
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )}
 
