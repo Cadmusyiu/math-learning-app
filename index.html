@@ -59,16 +59,16 @@
             };
         };
 
-        // 生成乘法問題 - 根據選擇的乘數表
+        // 生成乘法問題 - 結果為已選乘法表的1-9倍
         const generateMultiplicationProblem = () => {
             if (!selectedMultiplicationTable) return null;
-            const result = Math.floor(Math.random() * 9) ; // 結果1-9
-            const secondNumber = Math.floor(result / selectedMultiplicationTable) + 1; 
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = selectedMultiplicationTable * secondNumber;
             
             return {
                 firstNumber: selectedMultiplicationTable,
                 secondNumber,
-                result: selectedMultiplicationTable * secondNumber,
+                result,
                 operator: '×',
                 correctAnswer: secondNumber,
                 hiddenNumberPosition: 'second'
