@@ -7,24 +7,69 @@
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dnd@14.0.4/dist/umd/ReactDnD.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dnd-html5-backend@14.0.2/dist/umd/ReactDnDHTML5Backend.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .drag-number {
+            cursor: grab;
+            user-select: none;
+        }
+        .drag-number:active {
+            cursor: grabbing;
+        }
+        .drop-target {
+            border: 2px dashed #pink-300;
+            min-height: 50px;
         }
     </style>
 </head>
 <body>
-    <div id="root" class="container mx-auto p-6"></div>
+    <div id="root"></div>
 
     <script type="text/babel">
+    const { DndProvider, useDrag, useDrop } = ReactDnD;
+    const { HTML5Backend } = ReactDnDHTML5Backend;
+
+    // 可拖動的數字方塊
+    function DraggableNumber({ number, type }) {
+        const [{ isDragging }, drag] = useDrag(() => ({
+            type: 'NUMBER',
+            item: { number, type },
+            collect: (monitor) => ({
+                isDragging: !!monitor.isDragging()
+            })
+        }));
+
+        return (
+            <div 
+                ref={drag}
+                className={`drag-number p-2 m-1 rounded-lg text-center text-lg 
+                    ${type === 'addition' ? 'bg-green-200' : 
+                      type === 'subtraction' ? 'bg-blue-200' : 
+                      'bg-purple-200'} 
+                    ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+            >
+                {number}
+            </div>
+        );
+    }
+
     function MathLearningApp() {
         const [problem, setProblem] = React.useState(null);
-        const [selectedNumber, setSelectedNumber] = React.useState(null);
-        const [feedback, setFeedback] = React.useState('');
-        const [score, setScore] = React.useState(0);
         const [problemType, setProblemType] = React.useState('addition');
+        const [score, setScore] = React.useState(0);
+        const [feedback, setFeedback] = React.useState('');
+        const [selectedNumber, setSelectedNumber] = React.useState(null);
 
         // 生成加法問題 - 未知數填空
         const generateAdditionProblem = () => {
@@ -40,28 +85,75 @@
             };
         };
 
-        // 檢查答案
-        const checkAnswer = () => {
-            if (selectedNumber === problem.correctAnswer) {
-                setFeedback('✅ 太棒了！答對了！');
-                setScore(prevScore => prevScore + 1);
-                setTimeout(() => {
-                    generateNewProblem();
-                    setSelectedNumber(null);
-                    setFeedback('');
-                }, 1500);
-            } else {
-                setFeedback('❌ 再試一次喔！');
-                setTimeout(() => setFeedback(''), 1500);
-            }
+        // 生成減法問題 - 未知數填空
+        const generateSubtractionProblem = () => {
+            const firstNumber = Math.floor(Math.random() * 20) + 10; // 10-29的雙位數
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = firstNumber - secondNumber;
+            return {
+                firstNumber,
+                secondNumber,
+                result,
+                operator: '-',
+                correctAnswer: secondNumber
+            };
+        };
+
+        // 生成乘法問題 - 未知數填空
+        const generateMultiplicationProblem = () => {
+            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const result = firstNumber * secondNumber;
+            return {
+                firstNumber,
+                secondNumber,
+                result,
+                operator: '×',
+                correctAnswer: secondNumber
+            };
         };
 
         // 生成新問題
         const generateNewProblem = () => {
-            if (problemType === 'addition') {
-                setProblem(generateAdditionProblem());
+            let newProblem;
+            switch(problemType) {
+                case 'addition':
+                    newProblem = generateAdditionProblem();
+                    break;
+                case 'subtraction':
+                    newProblem = generateSubtractionProblem();
+                    break;
+                case 'multiplication':
+                    newProblem = generateMultiplicationProblem();
+                    break;
+                default:
+                    newProblem = generateAdditionProblem();
             }
+            setProblem(newProblem);
+            setSelectedNumber(null);
+            setFeedback('');
         };
+
+        // 檢查答案的拖放邏輯
+        const [{ isOver }, drop] = useDrop(() => ({
+            accept: 'NUMBER',
+            drop: (item) => {
+                // 檢查拖放的數字是否正確
+                if (item.number === problem.correctAnswer) {
+                    setFeedback('✅ 太棒了！答對了！');
+                    setScore(prevScore => prevScore + 1);
+                    setTimeout(() => {
+                        generateNewProblem();
+                    }, 1500);
+                } else {
+                    setFeedback('❌ 再試一次喔！');
+                    setTimeout(() => setFeedback(''), 1500);
+                }
+            },
+            collect: (monitor) => ({
+                isOver: !!monitor.isOver()
+            })
+        }));
 
         // 初始化問題
         React.useEffect(() => {
@@ -69,85 +161,88 @@
         }, [problemType]);
 
         return (
-            <div className="max-w-md mx-auto p-6 bg-white bg-opacity-80 rounded-2xl shadow-2xl text-center relative overflow-hidden">
-                {/* 標題 */}
-                <h1 className="text-3xl font-bold mb-6 text-pink-600 drop-shadow-md">
-                    萱萱老師數學坊 🧮
-                </h1>
-                
-                {/* 問題類型選擇 */}
-                <div className="mb-6 flex justify-center space-x-3">
-                    {['加法', '減法', '乘法'].map((type, index) => (
-                        <button 
-                            key={type}
-                            onClick={() => {
-                                setProblemType(['addition', 'subtraction', 'multiplication'][index]);
-                                setSelectedNumber(null);
-                                setFeedback('');
-                            }} 
-                            className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
-                                ${(problemType === ['addition', 'subtraction', 'multiplication'][index]) 
-                                    ? 'bg-pink-500 text-white scale-105' 
-                                    : 'bg-pink-100 text-pink-600 hover:bg-pink-200'}`}
-                        >
-                            {type}
-                        </button>
-                    ))}
-                </div>
-
-                {/* 問題顯示 */}
-                {problem && problemType === 'addition' && (
-                    <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
-                        <div className="text-4xl font-bold mb-6 text-gray-700">
-                            {problem.firstNumber} + ? = {problem.result}
-                        </div>
-                        
-                        {/* 反饋訊息 */}
-                        {feedback && (
-                            <div className={`mb-4 text-2xl font-bold 
-                                ${feedback.includes('✅') 
-                                    ? 'text-green-600 animate-bounce' 
-                                    : 'text-red-600'}`}
+            <DndProvider backend={HTML5Backend}>
+                <div className="max-w-md w-full p-6 bg-white bg-opacity-90 rounded-2xl shadow-2xl text-center relative">
+                    {/* 標題 */}
+                    <h1 className="text-3xl font-bold mb-6 text-pink-600 drop-shadow-md">
+                        萱萱老師數學坊 🧮
+                    </h1>
+                    
+                    {/* 問題類型選擇 */}
+                    <div className="mb-6 flex justify-center space-x-3">
+                        {[
+                            { type: 'addition', label: '加法' },
+                            { type: 'subtraction', label: '減法' },
+                            { type: 'multiplication', label: '乘法' }
+                        ].map(({ type, label }) => (
+                            <button 
+                                key={type}
+                                onClick={() => {
+                                    setProblemType(type);
+                                    generateNewProblem();
+                                }} 
+                                className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                                    ${problemType === type 
+                                        ? 'bg-pink-500 text-white scale-105' 
+                                        : 'bg-pink-100 text-pink-600 hover:bg-pink-200'}`}
                             >
-                                {feedback}
-                            </div>
-                        )}
-
-                        {/* 數字選擇區 */}
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                                <button
-                                    key={num}
-                                    onClick={() => setSelectedNumber(num)}
-                                    className={`py-2 text-lg rounded-lg transition-all duration-300 
-                                        ${selectedNumber === num 
-                                            ? 'bg-pink-500 text-white scale-105' 
-                                            : 'bg-pink-200 text-pink-700 hover:bg-pink-300'}`}
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        {/* 檢查按鈕 */}
-                        <button 
-                            onClick={checkAnswer}
-                            disabled={!selectedNumber}
-                            className={`w-full p-3 rounded-lg text-xl transition-colors duration-300
-                                ${selectedNumber 
-                                    ? 'bg-pink-500 text-white hover:bg-pink-600' 
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                        >
-                            檢查答案
-                        </button>
+                                {label}
+                            </button>
+                        ))}
                     </div>
-                )}
 
-                {/* 分數顯示 */}
-                <div className="text-xl text-pink-700 font-bold">
-                    目前分數：{score} 分
+                    {/* 問題顯示 */}
+                    {problem && (
+                        <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
+                            {/* 問題敘述 */}
+                            <div className="text-4xl font-bold mb-6 text-gray-700">
+                                {problem.firstNumber} {problem.operator} ? = {problem.result}
+                            </div>
+                            
+                            {/* 反饋訊息 */}
+                            {feedback && (
+                                <div className={`mb-4 text-2xl font-bold 
+                                    ${feedback.includes('✅') 
+                                        ? 'text-green-600 animate-bounce' 
+                                        : 'text-red-600'}`}
+                                >
+                                    {feedback}
+                                </div>
+                            )}
+
+                            {/* 拖放區域 */}
+                            <div 
+                                ref={drop}
+                                className={`mb-4 border-2 rounded-lg p-2 min-h-[60px] transition-colors 
+                                    ${isOver ? 'border-pink-500 bg-pink-100' : 'border-pink-300 bg-white'}`}
+                            >
+                                {selectedNumber ? 
+                                    <span className="text-2xl font-bold text-pink-600">
+                                        請將 {selectedNumber} 拖到此處
+                                    </span> : 
+                                    <span className="text-gray-400">拖曳答案到這裡</span>
+                                }
+                            </div>
+
+                            {/* 數字選擇區 */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                    <DraggableNumber 
+                                        key={num} 
+                                        number={num} 
+                                        type={problemType} 
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 分數顯示 */}
+                    <div className="text-xl text-pink-700 font-bold">
+                        目前分數：{score} 分
+                    </div>
                 </div>
-            </div>
+            </DndProvider>
         );
     }
 
