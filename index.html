@@ -27,37 +27,36 @@
         const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
         const [droppedNumber, setDroppedNumber] = React.useState(null);
 
-        // 生成加法問題 - 確保結果不超過10
-        const generateAdditionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 10); // 0-9
-            const secondNumber = Math.floor(Math.random() * (10 - firstNumber)); // 確保總和不超過10
-            const result = firstNumber + secondNumber;
-            
-            return {
-                firstNumber,
-                secondNumber,
-                result,
-                operator: '+',
-                correctAnswer: secondNumber,
-                hiddenNumberPosition: 'second'
-            };
-        };
+        // 生成加法問題 - 確保有解且不需要0
+const generateAdditionProblem = () => {
+    const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+    const secondNumber = Math.floor(Math.random() * (10 - firstNumber)); // 確保總和不超過9
+    const result = firstNumber + secondNumber;
+    
+    return {
+        firstNumber,
+        secondNumber,
+        result,
+        operator: '+',
+        correctAnswer: secondNumber,
+        hiddenNumberPosition: 'second'
+    };
+};
 
-        // 生成減法問題 - 固定為0-9的單一位數減法
-        const generateSubtractionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
-            const secondNumber = Math.floor(Math.random() * firstNumber); // 0到firstNumber-1
-            const result = firstNumber - secondNumber;
-            
-            return {
-                firstNumber,
-                secondNumber,
-                result,
-                operator: '-',
-                correctAnswer: secondNumber,
-                hiddenNumberPosition: 'second'
-            };
-        };
+// 生成減法問題 - 確保有解且不需要0
+const generateSubtractionProblem = () => {
+    const firstNumber = Math.floor(Math.random() * 8) + 2; // 2-9
+    const secondNumber = firstNumber - 1; // 確保結果為1
+    
+    return {
+        firstNumber,
+        secondNumber,
+        result: 1,
+        operator: '-',
+        correctAnswer: secondNumber,
+        hiddenNumberPosition: 'second'
+    };
+};
 
         // 生成乘法問題 - 根據選擇的乘數表
         const generateMultiplicationProblem = () => {
