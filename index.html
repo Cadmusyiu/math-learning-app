@@ -27,12 +27,11 @@
         const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
         const [droppedNumber, setDroppedNumber] = React.useState(null);
 
-        // 生成加法問題 - 確保有一個1-9的未知數
+        // 生成加法問題 - 確保結果不超過10
         const generateAdditionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 90) + 10; // 10-99的雙位數
-            const hiddenNumberPosition = 'second'; // 固定在第二個數字
-            const result = firstNumber + Math.floor(Math.random() * 9) + 1; // 確保有1-9的未知數
-            const secondNumber = result - firstNumber;
+            const firstNumber = Math.floor(Math.random() * 10); // 0-9
+            const secondNumber = Math.floor(Math.random() * (10 - firstNumber)); // 確保總和不超過10
+            const result = firstNumber + secondNumber;
             
             return {
                 firstNumber,
@@ -40,7 +39,7 @@
                 result,
                 operator: '+',
                 correctAnswer: secondNumber,
-                hiddenNumberPosition
+                hiddenNumberPosition: 'second'
             };
         };
 
