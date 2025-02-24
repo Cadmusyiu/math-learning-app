@@ -2,257 +2,193 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>萱萱老師數學坊</title>
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react-dnd@14.0.4/dist/umd/ReactDnD.min.js"></script>
-    <script src="https://unpkg.com/react-dnd-html5-backend@14.0.2/dist/umd/ReactDnDHTML5Backend.min.js"></script>
+    <title>數學填空遊戲</title>
     <style>
         body {
-            font-family: 'Arial', '微軟正黑體', sans-serif;
-            background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
-            min-height: 100vh;
-            margin: 0;
+            font-family: Arial, '微軟正黑體', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+            background-color: #f0f4f8;
+            margin: 0;
         }
-        .drag-number {
-            cursor: grab;
-            user-select: none;
+        .math-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .drag-number:active {
-            cursor: grabbing;
+        .equation {
+            font-size: 2em;
+            margin-bottom: 20px;
         }
+        .number-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .number-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .number-button:hover {
+            background-color: #45a049;
+        }
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .correct { color: green; }
+        .incorrect { color: red; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="math-container">
+        <div id="equation" class="equation"></div>
+        <div id="number-buttons" class="number-buttons"></div>
+        <div id="feedback" class="feedback"></div>
+    </div>
 
-    <script type="text/babel">
-    // Check if libraries are loaded
-    if (typeof React === 'undefined' || 
-        typeof ReactDOM === 'undefined' || 
-        typeof ReactDnD === 'undefined' || 
-        typeof ReactDnDHTML5Backend === 'undefined') {
-        document.getElementById('root').innerHTML = 
-            '<div style="color:red;">必要的函式庫未正確載入。請檢查網路連線。</div>';
-    } else {
-        const { DndProvider, useDrag, useDrop } = ReactDnD;
-        const { HTML5Backend } = ReactDnDHTML5Backend;
-
-        // 可拖動的數字方塊
-        function DraggableNumber({ number, type }) {
-            const [{ isDragging }, drag] = useDrag(() => ({
-                type: 'NUMBER',
-                item: { number, type },
-                collect: (monitor) => ({
-                    isDragging: !!monitor.isDragging()
-                })
-            }));
-
-            return (
-                <div 
-                    ref={drag}
-                    className={`drag-number p-2 m-1 rounded-lg text-center text-lg 
-                        ${type === 'addition' ? 'bg-green-200' : 
-                          type === 'subtraction' ? 'bg-blue-200' : 
-                          'bg-purple-200'} 
-                        ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-                >
-                    {number}
-                </div>
-            );
-        }
-
-        function MathLearningApp() {
-            const [problem, setProblem] = React.useState(null);
-            const [problemType, setProblemType] = React.useState('addition');
-            const [score, setScore] = React.useState(0);
-            const [feedback, setFeedback] = React.useState('');
-            const [selectedNumber, setSelectedNumber] = React.useState(null);
-
-            // 生成加法問題 - 未知數填空
-            const generateAdditionProblem = () => {
-                const firstNumber = Math.floor(Math.random() * 90) + 10;
-                const result = Math.floor(Math.random() * 40) + 20;
-                const secondNumber = result - firstNumber;
-                return {
-                    firstNumber,
-                    secondNumber,
-                    result,
-                    operator: '+',
-                    correctAnswer: secondNumber
-                };
-            };
-
-            // 生成減法問題 - 未知數填空
-            const generateSubtractionProblem = () => {
-                const firstNumber = Math.floor(Math.random() * 20) + 10;
-                const secondNumber = Math.floor(Math.random() * 9) + 1;
-                const result = firstNumber - secondNumber;
-                return {
-                    firstNumber,
-                    secondNumber,
-                    result,
-                    operator: '-',
-                    correctAnswer: secondNumber
-                };
-            };
-
-            // 生成乘法問題 - 未知數填空
-            const generateMultiplicationProblem = () => {
-                const firstNumber = Math.floor(Math.random() * 9) + 1;
-                const secondNumber = Math.floor(Math.random() * 9) + 1;
-                const result = firstNumber * secondNumber;
-                return {
-                    firstNumber,
-                    secondNumber,
-                    result,
-                    operator: '×',
-                    correctAnswer: secondNumber
-                };
-            };
-
-            // 生成新問題
-            const generateNewProblem = () => {
-                let newProblem;
-                switch(problemType) {
-                    case 'addition':
-                        newProblem = generateAdditionProblem();
-                        break;
-                    case 'subtraction':
-                        newProblem = generateSubtractionProblem();
-                        break;
-                    case 'multiplication':
-                        newProblem = generateMultiplicationProblem();
-                        break;
-                    default:
-                        newProblem = generateAdditionProblem();
+    <script>
+        // 數學問題類型
+        const problemTypes = [
+            { 
+                type: 'addition', 
+                generate: () => {
+                    const first = Math.floor(Math.random() * 90) + 10; // 10-99
+                    const result = Math.floor(Math.random() * 40) + 20; // 結果20-59
+                    const second = result - first;
+                    return { first, second, result, operator: '+' };
                 }
-                setProblem(newProblem);
-                setSelectedNumber(null);
-                setFeedback('');
-            };
+            },
+            { 
+                type: 'subtraction', 
+                generate: () => {
+                    const first = Math.floor(Math.random() * 20) + 10; // 10-29
+                    const second = Math.floor(Math.random() * 9) + 1; // 1-9
+                    const result = first - second;
+                    return { first, second, result, operator: '-' };
+                }
+            },
+            { 
+                type: 'multiplication', 
+                generate: () => {
+                    const first = Math.floor(Math.random() * 9) + 1; // 1-9
+                    const second = Math.floor(Math.random() * 9) + 1; // 1-9
+                    const result = first * second;
+                    return { first, second, result, operator: '×' };
+                }
+            }
+        ];
 
-            // 初始化問題
-            React.useEffect(() => {
-                generateNewProblem();
-            }, [problemType]);
+        // 當前問題和分數
+        let currentProblem = null;
+        let score = 0;
+        let currentType = 'addition';
 
-            // 檢查答案的拖放邏輯
-            const [{ isOver }, drop] = useDrop(() => ({
-                accept: 'NUMBER',
-                drop: (item) => {
-                    // 檢查拖放的數字是否正確
-                    if (item.number === problem.correctAnswer) {
-                        setFeedback('✅ 太棒了！答對了！');
-                        setScore(prevScore => prevScore + 1);
-                        setTimeout(() => {
-                            generateNewProblem();
-                        }, 1500);
-                    } else {
-                        setFeedback('❌ 再試一次喔！');
-                        setTimeout(() => setFeedback(''), 1500);
-                    }
-                },
-                collect: (monitor) => ({
-                    isOver: !!monitor.isOver()
-                })
-            }));
+        // 生成新問題
+        function generateProblem(type) {
+            currentType = type;
+            const problemGenerator = problemTypes.find(p => p.type === type);
+            currentProblem = problemGenerator.generate();
+            
+            // 隨機決定哪個數字被隱藏
+            const hideFirst = Math.random() > 0.5;
+            currentProblem.hideFirst = hideFirst;
 
-            return (
-                <DndProvider backend={HTML5Backend}>
-                    <div className="max-w-md w-full p-6 bg-white bg-opacity-90 rounded-2xl shadow-2xl text-center relative">
-                        {/* 標題 */}
-                        <h1 className="text-3xl font-bold mb-6 text-pink-600 drop-shadow-md">
-                            萱萱老師數學坊 🧮
-                        </h1>
-                        
-                        {/* 問題類型選擇 */}
-                        <div className="mb-6 flex justify-center space-x-3">
-                            {[
-                                { type: 'addition', label: '加法' },
-                                { type: 'subtraction', label: '減法' },
-                                { type: 'multiplication', label: '乘法' }
-                            ].map(({ type, label }) => (
-                                <button 
-                                    key={type}
-                                    onClick={() => {
-                                        setProblemType(type);
-                                        generateNewProblem();
-                                    }} 
-                                    className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
-                                        ${problemType === type 
-                                            ? 'bg-pink-500 text-white scale-105' 
-                                            : 'bg-pink-100 text-pink-600 hover:bg-pink-200'}`}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* 問題顯示 */}
-                        {problem && (
-                            <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
-                                {/* 問題敘述 */}
-                                <div className="text-4xl font-bold mb-6 text-gray-700">
-                                    {problem.firstNumber} {problem.operator} ? = {problem.result}
-                                </div>
-                                
-                                {/* 反饋訊息 */}
-                                {feedback && (
-                                    <div className={`mb-4 text-2xl font-bold 
-                                        ${feedback.includes('✅') 
-                                            ? 'text-green-600 animate-bounce' 
-                                            : 'text-red-600'}`}
-                                    >
-                                        {feedback}
-                                    </div>
-                                )}
-
-                                {/* 拖放區域 */}
-                                <div 
-                                    ref={drop}
-                                    className={`mb-4 border-2 rounded-lg p-2 min-h-[60px] transition-colors 
-                                        ${isOver ? 'border-pink-500 bg-pink-100' : 'border-pink-300 bg-white'}`}
-                                >
-                                    {selectedNumber ? 
-                                        <span className="text-2xl font-bold text-pink-600">
-                                            請將 {selectedNumber} 拖到此處
-                                        </span> : 
-                                        <span className="text-gray-400">拖曳答案到這裡</span>
-                                    }
-                                </div>
-
-                                {/* 數字選擇區 */}
-                                <div className="grid grid-cols-3 gap-2">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                                        <DraggableNumber 
-                                            key={num} 
-                                            number={num} 
-                                            type={problemType} 
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 分數顯示 */}
-                        <div className="text-xl text-pink-700 font-bold">
-                            目前分數：{score} 分
-                        </div>
-                    </div>
-                </DndProvider>
-            );
+            updateEquationDisplay();
+            createNumberButtons();
         }
 
-        // 渲染應用
-        ReactDOM.render(<MathLearningApp />, document.getElementById('root'));
-    }
+        // 更新方程式顯示
+        function updateEquationDisplay() {
+            const equationEl = document.getElementById('equation');
+            const { first, second, result, operator, hideFirst } = currentProblem;
+            
+            if (hideFirst) {
+                equationEl.innerHTML = `? ${operator} ${second} = ${result}`;
+                currentProblem.correctAnswer = first;
+            } else {
+                equationEl.innerHTML = `${first} ${operator} ? = ${result}`;
+                currentProblem.correctAnswer = second;
+            }
+        }
+
+        // 創建數字按鈕
+        function createNumberButtons() {
+            const buttonsEl = document.getElementById('number-buttons');
+            buttonsEl.innerHTML = '';
+            
+            for (let i = 1; i <= 9; i++) {
+                const button = document.createElement('button');
+                button.className = 'number-button';
+                button.textContent = i;
+                button.onclick = () => checkAnswer(i);
+                buttonsEl.appendChild(button);
+            }
+        }
+
+        // 檢查答案
+        function checkAnswer(selectedNumber) {
+            const feedbackEl = document.getElementById('feedback');
+            
+            if (selectedNumber === currentProblem.correctAnswer) {
+                feedbackEl.innerHTML = '✅ 答對了！';
+                feedbackEl.className = 'feedback correct';
+                score++;
+                setTimeout(() => {
+                    generateProblem(currentType);
+                    feedbackEl.innerHTML = '';
+                }, 1500);
+            } else {
+                feedbackEl.innerHTML = '❌ 再試一次';
+                feedbackEl.className = 'feedback incorrect';
+                setTimeout(() => {
+                    feedbackEl.innerHTML = '';
+                }, 1500);
+            }
+        }
+
+        // 創建操作按鈕
+        function createOperationButtons() {
+            const container = document.querySelector('.math-container');
+            const operationDiv = document.createElement('div');
+            operationDiv.style.marginBottom = '20px';
+            
+            ['addition', 'subtraction', 'multiplication'].forEach(type => {
+                const button = document.createElement('button');
+                button.textContent = type === 'addition' ? '加法' : 
+                                     type === 'subtraction' ? '減法' : '乘法';
+                button.onclick = () => generateProblem(type);
+                button.style.margin = '0 10px';
+                button.style.padding = '10px';
+                button.style.backgroundColor = '#2196F3';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '5px';
+                operationDiv.appendChild(button);
+            });
+
+            container.insertBefore(operationDiv, container.firstChild);
+        }
+
+        // 初始化
+        function init() {
+            createOperationButtons();
+            generateProblem('addition');
+        }
+
+        // 頁面載入時初始化
+        init();
     </script>
 </body>
 </html>
