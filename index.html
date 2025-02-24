@@ -2,193 +2,229 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>數學填空遊戲</title>
+    <title>萱萱老師數學坊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, '微軟正黑體', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f4f8;
-            margin: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
         }
-        .math-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .equation {
-            font-size: 2em;
-            margin-bottom: 20px;
-        }
-        .number-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-        .number-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px;
-            font-size: 1.2em;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .number-button:hover {
-            background-color: #45a049;
-        }
-        .feedback {
-            margin-top: 20px;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .correct { color: green; }
-        .incorrect { color: red; }
     </style>
 </head>
 <body>
-    <div class="math-container">
-        <div id="equation" class="equation"></div>
-        <div id="number-buttons" class="number-buttons"></div>
-        <div id="feedback" class="feedback"></div>
-    </div>
+    <div id="root" class="container mx-auto p-6"></div>
 
-    <script>
-        // 數學問題類型
-        const problemTypes = [
-            { 
-                type: 'addition', 
-                generate: () => {
-                    const first = Math.floor(Math.random() * 90) + 10; // 10-99
-                    const result = Math.floor(Math.random() * 40) + 20; // 結果20-59
-                    const second = result - first;
-                    return { first, second, result, operator: '+' };
-                }
-            },
-            { 
-                type: 'subtraction', 
-                generate: () => {
-                    const first = Math.floor(Math.random() * 20) + 10; // 10-29
-                    const second = Math.floor(Math.random() * 9) + 1; // 1-9
-                    const result = first - second;
-                    return { first, second, result, operator: '-' };
-                }
-            },
-            { 
-                type: 'multiplication', 
-                generate: () => {
-                    const first = Math.floor(Math.random() * 9) + 1; // 1-9
-                    const second = Math.floor(Math.random() * 9) + 1; // 1-9
-                    const result = first * second;
-                    return { first, second, result, operator: '×' };
-                }
-            }
-        ];
+    <script type="text/babel">
+    function MathLearningApp() {
+        const [problem, setProblem] = React.useState(null);
+        const [userAnswer, setUserAnswer] = React.useState('');
+        const [feedback, setFeedback] = React.useState('');
+        const [score, setScore] = React.useState(0);
+        const [problemType, setProblemType] = React.useState('addition');
+        const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
 
-        // 當前問題和分數
-        let currentProblem = null;
-        let score = 0;
-        let currentType = 'addition';
+        // 生成加法問題 - 確保兩位數 + 一位數 不超過100
+        const generateAdditionProblem = () => {
+            const firstNumber = Math.floor(Math.random() * 90) + 10; // 10-99的雙位數
+            const maxSecondNumber = 100 - firstNumber; // 確保總和不超過100
+            const secondNumber = Math.floor(Math.random() * Math.min(9, maxSecondNumber)) + 1;
+            return {
+                firstNumber,
+                secondNumber,
+                operator: '+',
+                correctAnswer: firstNumber + secondNumber
+            };
+        };
+
+        // 生成減法問題
+        const generateSubtractionProblem = () => {
+            const firstNumber = Math.floor(Math.random() * 10) + 1;
+            const secondNumber = Math.floor(Math.random() * firstNumber) + 1;
+            return {
+                firstNumber,
+                secondNumber,
+                operator: '-',
+                correctAnswer: firstNumber - secondNumber
+            };
+        };
+
+        // 生成乘法問題 - 根據選擇的乘數表
+        const generateMultiplicationProblem = () => {
+            if (!selectedMultiplicationTable) return null;
+            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            return {
+                firstNumber: selectedMultiplicationTable,
+                secondNumber,
+                operator: '×',
+                correctAnswer: selectedMultiplicationTable * secondNumber
+            };
+        };
 
         // 生成新問題
-        function generateProblem(type) {
-            currentType = type;
-            const problemGenerator = problemTypes.find(p => p.type === type);
-            currentProblem = problemGenerator.generate();
-            
-            // 隨機決定哪個數字被隱藏
-            const hideFirst = Math.random() > 0.5;
-            currentProblem.hideFirst = hideFirst;
-
-            updateEquationDisplay();
-            createNumberButtons();
-        }
-
-        // 更新方程式顯示
-        function updateEquationDisplay() {
-            const equationEl = document.getElementById('equation');
-            const { first, second, result, operator, hideFirst } = currentProblem;
-            
-            if (hideFirst) {
-                equationEl.innerHTML = `? ${operator} ${second} = ${result}`;
-                currentProblem.correctAnswer = first;
-            } else {
-                equationEl.innerHTML = `${first} ${operator} ? = ${result}`;
-                currentProblem.correctAnswer = second;
+        const generateNewProblem = React.useCallback(() => {
+            let newProblem;
+            switch(problemType) {
+                case 'addition':
+                    newProblem = generateAdditionProblem();
+                    break;
+                case 'subtraction':
+                    newProblem = generateSubtractionProblem();
+                    break;
+                case 'multiplication':
+                    newProblem = generateMultiplicationProblem();
+                    break;
+                default:
+                    newProblem = generateAdditionProblem();
             }
-        }
-
-        // 創建數字按鈕
-        function createNumberButtons() {
-            const buttonsEl = document.getElementById('number-buttons');
-            buttonsEl.innerHTML = '';
-            
-            for (let i = 1; i <= 9; i++) {
-                const button = document.createElement('button');
-                button.className = 'number-button';
-                button.textContent = i;
-                button.onclick = () => checkAnswer(i);
-                buttonsEl.appendChild(button);
-            }
-        }
+            setProblem(newProblem);
+            setUserAnswer('');
+            setFeedback('');
+        }, [problemType, selectedMultiplicationTable]);
 
         // 檢查答案
-        function checkAnswer(selectedNumber) {
-            const feedbackEl = document.getElementById('feedback');
-            
-            if (selectedNumber === currentProblem.correctAnswer) {
-                feedbackEl.innerHTML = '✅ 答對了！';
-                feedbackEl.className = 'feedback correct';
-                score++;
-                setTimeout(() => {
-                    generateProblem(currentType);
-                    feedbackEl.innerHTML = '';
-                }, 1500);
+        const checkAnswer = () => {
+            const numAnswer = parseInt(userAnswer);
+            if (numAnswer === problem.correctAnswer) {
+                setFeedback('太棒了！答對了！🌟');
+                setScore(prevScore => prevScore + 1);
+                setTimeout(generateNewProblem, 1500);
             } else {
-                feedbackEl.innerHTML = '❌ 再試一次';
-                feedbackEl.className = 'feedback incorrect';
-                setTimeout(() => {
-                    feedbackEl.innerHTML = '';
-                }, 1500);
+                setFeedback('再試一次喔！');
             }
-        }
+        };
 
-        // 創建操作按鈕
-        function createOperationButtons() {
-            const container = document.querySelector('.math-container');
-            const operationDiv = document.createElement('div');
-            operationDiv.style.marginBottom = '20px';
-            
-            ['addition', 'subtraction', 'multiplication'].forEach(type => {
-                const button = document.createElement('button');
-                button.textContent = type === 'addition' ? '加法' : 
-                                     type === 'subtraction' ? '減法' : '乘法';
-                button.onclick = () => generateProblem(type);
-                button.style.margin = '0 10px';
-                button.style.padding = '10px';
-                button.style.backgroundColor = '#2196F3';
-                button.style.color = 'white';
-                button.style.border = 'none';
-                button.style.borderRadius = '5px';
-                operationDiv.appendChild(button);
-            });
+        // 初始化問題
+        React.useEffect(() => {
+            generateNewProblem();
+        }, [problemType, selectedMultiplicationTable, generateNewProblem]);
 
-            container.insertBefore(operationDiv, container.firstChild);
-        }
+        return (
+            <div className="max-w-md mx-auto p-6 bg-white bg-opacity-80 rounded-2xl shadow-2xl text-center relative overflow-hidden">
+                {/* 可愛的裝飾 */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-pink-300"></div>
+                <div className="absolute bottom-0 left-0 w-full h-2 bg-pink-300"></div>
 
-        // 初始化
-        function init() {
-            createOperationButtons();
-            generateProblem('addition');
-        }
+                {/* 標題 */}
+                <h1 className="text-3xl font-bold mb-6 text-pink-600 drop-shadow-md">
+                    萱萱老師數學坊 🧮
+                </h1>
+                
+                {/* 問題類型選擇 */}
+                <div className="mb-6 flex justify-center space-x-3">
+                    <button 
+                        onClick={() => {
+                            setProblemType('addition');
+                            setSelectedMultiplicationTable(null);
+                        }} 
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'addition' 
+                                ? 'bg-green-500 text-white scale-105' 
+                                : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                    >
+                        加法
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setProblemType('subtraction');
+                            setSelectedMultiplicationTable(null);
+                        }} 
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'subtraction' 
+                                ? 'bg-blue-500 text-white scale-105' 
+                                : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
+                    >
+                        減法
+                    </button>
+                    <button 
+                        onClick={() => setProblemType('multiplication')} 
+                        className={`px-4 py-2 rounded-full shadow-md transition-all duration-300 
+                            ${problemType === 'multiplication' 
+                                ? 'bg-purple-500 text-white scale-105' 
+                                : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}
+                    >
+                        乘法
+                    </button>
+                </div>
 
-        // 頁面載入時初始化
-        init();
+                {/* 乘法表選擇 */}
+                {problemType === 'multiplication' && !selectedMultiplicationTable && (
+                    <div className="mb-6 bg-purple-50 p-6 rounded-xl shadow-inner">
+                        <h2 className="text-xl font-bold mb-4 text-purple-700">選擇要練習的乘數表</h2>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => setSelectedMultiplicationTable(num)}
+                                    className="bg-purple-200 text-purple-700 py-2 rounded-lg hover:bg-purple-300 transition-colors"
+                                >
+                                    {num} 的乘法表
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 問題顯示 */}
+                {problem && (problemType !== 'multiplication' || selectedMultiplicationTable) && (
+                    <div className="mb-6 bg-pink-50 p-6 rounded-xl shadow-inner">
+                        {problemType === 'multiplication' && (
+                            <div className="mb-4 text-xl text-purple-700 font-bold">
+                                {selectedMultiplicationTable} 的乘法表
+                                <button 
+                                    onClick={() => setSelectedMultiplicationTable(null)}
+                                    className="ml-3 bg-purple-200 px-2 py-1 rounded-md text-sm"
+                                >
+                                    重選
+                                </button>
+                            </div>
+                        )}
+                        <div className="text-5xl font-bold mb-6 text-gray-700">
+                            {problem.firstNumber} {problem.operator} {problem.secondNumber} = 
+                        </div>
+                        
+                        {/* 答案輸入 */}
+                        <input 
+                            type="number" 
+                            value={userAnswer}
+                            onChange={(e) => setUserAnswer(e.target.value)}
+                            className="w-full p-3 text-center text-3xl border-2 border-pink-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            placeholder="輸入你的答案"
+                        />
+                        
+                        {/* 檢查按鈕 */}
+                        <button 
+                            onClick={checkAnswer}
+                            className="w-full bg-pink-500 text-white p-3 rounded-lg hover:bg-pink-600 transition-colors duration-300 text-xl"
+                        >
+                            檢查答案
+                        </button>
+                        
+                        {/* 反饋訊息 */}
+                        {feedback && (
+                            <div className={`mt-4 text-2xl font-bold 
+                                ${feedback.includes('太棒了') 
+                                    ? 'text-green-600 animate-bounce' 
+                                    : 'text-red-600'}`}
+                            >
+                                {feedback}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 分數顯示 */}
+                <div className="text-xl text-pink-700 font-bold">
+                    目前分數：{score} 分
+                </div>
+            </div>
+        );
+    }
+
+    ReactDOM.render(<MathLearningApp />, document.getElementById('root'));
     </script>
 </body>
 </html>
