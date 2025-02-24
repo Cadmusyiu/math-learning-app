@@ -13,17 +13,6 @@
             font-family: 'Noto Sans TC', sans-serif;
             background: linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 100%);
         }
-        .draggable-number {
-            cursor: grab;
-            user-select: none;
-        }
-        .draggable-number:active {
-            cursor: grabbing;
-        }
-        .drop-zone {
-            border: 2px dashed #pink-300;
-            min-height: 50px;
-        }
     </style>
 </head>
 <body>
@@ -38,35 +27,36 @@
         const [selectedMultiplicationTable, setSelectedMultiplicationTable] = React.useState(null);
         const [droppedNumber, setDroppedNumber] = React.useState(null);
 
-        // 生成加法問題 - 確保兩位數 + 一位數 不超過100
+        // 生成加法問題 - 確保有一個1-9的未知數
         const generateAdditionProblem = () => {
             const firstNumber = Math.floor(Math.random() * 90) + 10; // 10-99的雙位數
-            const result = Math.floor(Math.random() * 40) + 20; // 結果20-59
+            const hiddenNumberPosition = 'second'; // 固定在第二個數字
+            const result = firstNumber + Math.floor(Math.random() * 9) + 1; // 確保有1-9的未知數
             const secondNumber = result - firstNumber;
-            const hideFirst = Math.random() > 0.5;
+            
             return {
                 firstNumber,
                 secondNumber,
                 result,
                 operator: '+',
-                correctAnswer: hideFirst ? firstNumber : secondNumber,
-                hideFirst
+                correctAnswer: secondNumber,
+                hiddenNumberPosition
             };
         };
 
-        // 生成減法問題
+        // 生成減法問題 - 固定為0-9的單一位數減法
         const generateSubtractionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 20) + 10; // 10-29
-            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
+            const secondNumber = Math.floor(Math.random() * firstNumber); // 0到firstNumber-1
             const result = firstNumber - secondNumber;
-            const hideFirst = Math.random() > 0.5;
+            
             return {
                 firstNumber,
                 secondNumber,
                 result,
                 operator: '-',
-                correctAnswer: hideFirst ? firstNumber : secondNumber,
-                hideFirst
+                correctAnswer: secondNumber,
+                hiddenNumberPosition: 'second'
             };
         };
 
@@ -82,7 +72,7 @@
                 result,
                 operator: '×',
                 correctAnswer: hideFirst ? selectedMultiplicationTable : secondNumber,
-                hideFirst
+                hiddenNumberPosition: hideFirst ? 'first' : 'second'
             };
         };
 
@@ -126,17 +116,17 @@
 
         // 渲染問題顯示
         const renderEquation = () => {
-            const { firstNumber, secondNumber, result, operator, hideFirst } = problem;
-            if (hideFirst) {
+            const { firstNumber, secondNumber, result, operator, hiddenNumberPosition } = problem;
+            if (hiddenNumberPosition === 'first') {
                 return (
                     <div className="text-5xl font-bold mb-6 text-gray-700">
-                        ? {operator} {hideFirst ? secondNumber : firstNumber} = {result}
+                        ? {operator} {secondNumber} = {result}
                     </div>
                 );
             }
             return (
                 <div className="text-5xl font-bold mb-6 text-gray-700">
-                    {hideFirst ? '?' : firstNumber} {operator} {hideFirst ? firstNumber : secondNumber} = {result}
+                    {firstNumber} {operator} ? = {result}
                 </div>
             );
         };
