@@ -62,7 +62,7 @@
         // 生成乘法問題 - 根據選擇的乘數表
         const generateMultiplicationProblem = () => {
             if (!selectedMultiplicationTable) return null;
-            const result = Math.floor(Math.random() * 9) + 1; // 結果1-9
+            const result = Math.floor(Math.random() * 9) ; // 結果1-9
             const secondNumber = Math.floor(result / selectedMultiplicationTable) + 1; 
             
             return {
