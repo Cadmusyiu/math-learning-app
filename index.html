@@ -62,16 +62,16 @@
         // 生成乘法問題 - 根據選擇的乘數表
         const generateMultiplicationProblem = () => {
             if (!selectedMultiplicationTable) return null;
-            const secondNumber = Math.floor(Math.random() * 9) + 1; // 1-9
-            const result = selectedMultiplicationTable * secondNumber;
-            const hideFirst = Math.random() > 0.5;
+            const result = Math.floor(Math.random() * 9) + 1; // 結果1-9
+            const secondNumber = Math.floor(result / selectedMultiplicationTable) + 1; 
+            
             return {
                 firstNumber: selectedMultiplicationTable,
                 secondNumber,
-                result,
+                result: selectedMultiplicationTable * secondNumber,
                 operator: '×',
-                correctAnswer: hideFirst ? selectedMultiplicationTable : secondNumber,
-                hiddenNumberPosition: hideFirst ? 'first' : 'second'
+                correctAnswer: secondNumber,
+                hiddenNumberPosition: 'second'
             };
         };
 
