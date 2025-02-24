@@ -45,9 +45,9 @@
 
         // 生成減法問題 - 確保有解且不需要0
         const generateSubtractionProblem = () => {
-            const firstNumber = Math.floor(Math.random() * 9) + 1; // 1-9
-            const secondNumber = Math.floor(Math.random() * result)+1 ; // 1到result-1
-            const result = result + secondNumber; // 確保結果為正數
+            const result = Math.floor(Math.random() * 9) + 1; // 結果為1-9
+            const secondNumber = Math.floor(Math.random() * result) + 1; // 1到result-1
+            const firstNumber = result + secondNumber; // 確保結果為正數
             
             return {
                 firstNumber,
